@@ -77,7 +77,8 @@ The submission should be in the following folder structure sent as a ZIP file.
 
 - Create the `template.json` and `securityPolicy.json` based on the lab topic.
 - Run the `deploy_lab.sh` script:
-    - In the submission directory, run the command `./deploy_lab.sh <your-resource-group-name>`
+    - In the submission directory, run the command `./deploy_lab.sh <your-resource-group-name>` (mac/linux)
+      - `.\deploy_lab.ps1 -ResourceGroup "your-resource-group-name"` (windows)
     - This will create and assign the role from `securityPolicy.json`
     - Create and assign policy from `securityPolicy.json`
     - Deploy the template from `template.json`
@@ -92,6 +93,7 @@ The submission should be in the following folder structure sent as a ZIP file.
 
 - When testing the templates and policy you would often need to start over.
 - Do this by running the delete_lab.sh script:
-    - In the submission directory, run the command `./delete_lab.sh <your-resource-group-name>`
+    - In the submission directory, run the command `./delete_lab.sh <your-resource-group-name>` (mac/linux)
+      - `.\delete_lab.ps1 -ResourceGroup "your-resource-group-name"` (windows)
     - This will delete the role and policy.
     - You would manually need to delete all the resources within the resource group in the portal.
