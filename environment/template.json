@@ -1,0 +1,264 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+      "adminUsername": {
+          "type": "string",
+          "defaultValue": "azureuser",
+          "metadata": {
+              "description": "Admin username for VMs"
+          }
+      },
+      "adminPasswordOrKey": {
+          "type": "string",
+          "defaultValue": "LabP@ssw0rd123!",
+          "metadata": {
+              "description": "SSH Key or password for the Virtual Machine"
+          }
+      },
+      "authenticationType": {
+          "type": "string",
+          "defaultValue": "password",
+          "allowedValues": [
+              "password"
+          ],
+          "metadata": {
+              "description": "Type of authentication to use on the Virtual Machine"
+          }
+      }
+  },
+  "variables": {
+      "prodVnetName": "prod-network",
+      "devVnetName": "dev-network",
+      "prodVmName": "prod-vm",
+      "devVmName": "dev-vm",
+      "prodSubnetName": "prod-subnet",
+      "devSubnetName": "dev-subnet",
+      "vmSize": "Standard_B1s",
+      "linuxConfiguration": {
+          "disablePasswordAuthentication": false
+      }
+  },
+  "resources": [
+      {
+          "type": "Microsoft.Network/virtualNetworks",
+          "apiVersion": "2021-02-01",
+          "name": "[variables('prodVnetName')]",
+          "location": "[resourceGroup().location]",
+          "properties": {
+              "addressSpace": {
+                  "addressPrefixes": [
+                      "10.0.0.0/16"
+                  ]
+              },
+              "subnets": [
+                  {
+                      "name": "[variables('prodSubnetName')]",
+                      "properties": {
+                          "addressPrefix": "10.0.1.0/24"
+                      }
+                  }
+              ]
+          }
+      },
+      {
+          "type": "Microsoft.Network/virtualNetworks",
+          "apiVersion": "2021-02-01",
+          "name": "[variables('devVnetName')]",
+          "location": "[resourceGroup().location]",
+          "properties": {
+              "addressSpace": {
+                  "addressPrefixes": [
+                      "172.16.0.0/16"
+                  ]
+              },
+              "subnets": [
+                  {
+                      "name": "[variables('devSubnetName')]",
+                      "properties": {
+                          "addressPrefix": "172.16.1.0/24"
+                      }
+                  }
+              ]
+          }
+      },
+      {
+          "type": "Microsoft.Network/publicIPAddresses",
+          "apiVersion": "2021-02-01",
+          "name": "[concat(variables('prodVmName'), '-ip')]",
+          "location": "[resourceGroup().location]",
+          "sku": {
+              "name": "Basic"
+          },
+          "properties": {
+              "publicIPAllocationMethod": "Static"
+          }
+      },
+      {
+          "type": "Microsoft.Network/publicIPAddresses",
+          "apiVersion": "2021-02-01",
+          "name": "[concat(variables('devVmName'), '-ip')]",
+          "location": "[resourceGroup().location]",
+          "sku": {
+              "name": "Basic"
+          },
+          "properties": {
+              "publicIPAllocationMethod": "Static"
+          }
+      },
+      {
+          "type": "Microsoft.Network/networkInterfaces",
+          "apiVersion": "2021-02-01",
+          "name": "[concat(variables('prodVmName'), '-nic')]",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+              "[resourceId('Microsoft.Network/virtualNetworks', variables('prodVnetName'))]",
+              "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('prodVmName'), '-ip'))]"
+          ],
+          "properties": {
+              "ipConfigurations": [
+                  {
+                      "name": "ipconfig1",
+                      "properties": {
+                          "privateIPAllocationMethod": "Dynamic",
+                          "publicIPAddress": {
+                              "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('prodVmName'), '-ip'))]"
+                          },
+                          "subnet": {
+                              "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('prodVnetName'), variables('prodSubnetName'))]"
+                          }
+                      }
+                  }
+              ]
+          }
+      },
+      {
+          "type": "Microsoft.Network/networkInterfaces",
+          "apiVersion": "2021-02-01",
+          "name": "[concat(variables('devVmName'), '-nic')]",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+              "[resourceId('Microsoft.Network/virtualNetworks', variables('devVnetName'))]",
+              "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('devVmName'), '-ip'))]"
+          ],
+          "properties": {
+              "ipConfigurations": [
+                  {
+                      "name": "ipconfig1",
+                      "properties": {
+                          "privateIPAllocationMethod": "Dynamic",
+                          "publicIPAddress": {
+                              "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('devVmName'), '-ip'))]"
+                          },
+                          "subnet": {
+                              "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('devVnetName'), variables('devSubnetName'))]"
+                          }
+                      }
+                  }
+              ]
+          }
+      },
+      {
+          "type": "Microsoft.Compute/virtualMachines",
+          "apiVersion": "2021-03-01",
+          "name": "[variables('prodVmName')]",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+              "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('prodVmName'), '-nic'))]"
+          ],
+          "properties": {
+              "hardwareProfile": {
+                  "vmSize": "[variables('vmSize')]"
+              },
+              "osProfile": {
+                  "computerName": "[variables('prodVmName')]",
+                  "adminUsername": "[parameters('adminUsername')]",
+                  "adminPassword": "[parameters('adminPasswordOrKey')]",
+                  "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+              },
+              "storageProfile": {
+                  "imageReference": {
+                      "publisher": "canonical",
+                      "offer": "0001-com-ubuntu-server-jammy",
+                      "sku": "22_04-lts-gen2",
+                      "version": "latest"
+                  },
+                  "osDisk": {
+                      "createOption": "FromImage"
+                  }
+              },
+              "networkProfile": {
+                  "networkInterfaces": [
+                      {
+                          "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('prodVmName'), '-nic'))]"
+                      }
+                  ]
+              }
+          }
+      },
+      {
+          "type": "Microsoft.Compute/virtualMachines",
+          "apiVersion": "2021-03-01",
+          "name": "[variables('devVmName')]",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+              "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('devVmName'), '-nic'))]"
+          ],
+          "properties": {
+              "hardwareProfile": {
+                  "vmSize": "[variables('vmSize')]"
+              },
+              "osProfile": {
+                  "computerName": "[variables('devVmName')]",
+                  "adminUsername": "[parameters('adminUsername')]",
+                  "adminPassword": "[parameters('adminPasswordOrKey')]",
+                  "linuxConfiguration": "[if(equals(parameters('authenticationType'), 'password'), json('null'), variables('linuxConfiguration'))]"
+              },
+              "storageProfile": {
+                  "imageReference": {
+                      "publisher": "canonical",
+                      "offer": "0001-com-ubuntu-server-jammy",
+                      "sku": "22_04-lts-gen2",
+                      "version": "latest"
+                  },
+                  "osDisk": {
+                      "createOption": "FromImage"
+                  }
+              },
+              "networkProfile": {
+                  "networkInterfaces": [
+                      {
+                          "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(variables('devVmName'), '-nic'))]"
+                      }
+                  ]
+              }
+          }
+      }
+  ],
+  "outputs": {
+      "prodVmPublicIP": {
+          "type": "string",
+          "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('prodVmName'), '-ip'))).IpAddress]"
+      },
+      "devVmPublicIP": {
+          "type": "string",
+          "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', concat(variables('devVmName'), '-ip'))).IpAddress]"
+      },
+      "prodVmPrivateIP": {
+          "type": "string",
+          "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', concat(variables('prodVmName'), '-nic'))).ipConfigurations[0].properties.privateIPAddress]"
+      },
+      "devVmPrivateIP": {
+          "type": "string",
+          "value": "[reference(resourceId('Microsoft.Network/networkInterfaces', concat(variables('devVmName'), '-nic'))).ipConfigurations[0].properties.privateIPAddress]"
+      },
+      "VmAdminUsername": {
+          "type": "string",
+          "value": "[parameters('adminUsername')]"
+      },
+      "VmAdminPassword": {
+          "type": "string",
+          "value": "[parameters('adminPasswordOrKey')]"
+      }
+  }
+}
