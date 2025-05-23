@@ -11,12 +11,11 @@ The assignment is split into three parts, detailed below.
 **Objective**:
 
 - Provide an ARM template that provisions the initial environment
-- Include a security policy file defining access control using role assignments and custom role definitions
 
 **Requirements:**
 
 - The provisioning template must deploy all necessary resources required at the beginning of the lab.
-- The security policy must follow least-privilege principles, granting users only the permissions needed to complete the lab objectives.
+- This serevs as the starting point of the lab
 
 ### Part 2 - Lab Instructions (Markdown)
 
@@ -32,6 +31,8 @@ The assignment is split into three parts, detailed below.
 - Reference sample instructions provided to maintain consistency with platform style.
 
 ### Lab Topic: Implement Solutions That Use Azure Queue Storage Queues (EXAMPLE TOPIC)
+
+This is an example topic. Your Lab Toppic will be sent separately.
 
 In this lab, you will:
 
@@ -50,7 +51,7 @@ The submission should be in the following folder structure sent as a ZIP file.
 📁 lab-submission/
 ├── 📁 environment/
 │   ├── template.json
-│   └── securityPolicy.json
+│   
 │
 ├── 📁 instructions/
 │   ├── 📁 step1/
